@@ -1,0 +1,40 @@
+{
+  "packages": {
+    "curl": {
+      "version": "latest"
+    },
+    "nodejs": {
+      "version": "18"
+    },
+    "yarn": {
+      "version": "latest"
+    },
+    "libiconv": {
+      "version": "latest"
+    },
+    "darwin.apple_sdk.frameworks.Security": {
+      "platforms": [
+        "aarch64-darwin",
+        "x86_64-darwin"
+      ]
+    },
+    "darwin.apple_sdk.frameworks.SystemConfiguration": {
+      "platforms": [
+        "aarch64-darwin",
+        "x86_64-darwin"
+      ]
+    }
+  },
+  "shell": {
+    "init_hook": [
+      "curl \"https://sh.rustup.rs\" -sfo rustup.sh && sh rustup.sh -y && rustup component add rustfmt clippy",
+      "export PATH=\"${HOME}/.cargo/bin:${PATH}\"",
+      "sh -c \"$(curl -sSfL https://release.solana.com/v1.18.16/install)\"",
+      "export PATH=\"$HOME/.local/share/solana/install/active_release/bin:$PATH\"",
+      "cargo install --git https://github.com/coral-xyz/anchor avm --locked --force",
+      "avm install 0.30.0",
+      "avm use latest",
+      "cargo install df-sol"
+    ]
+  }
+}
