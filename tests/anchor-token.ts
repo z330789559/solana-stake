@@ -103,6 +103,7 @@ async function initNft(payer: PublicKey, stake: PublicKey, collectionMasterEditi
         mint: nft1,
         owner: userKeyPair.publicKey,
     });
+    console.log("masterEditionAccount", masterEditionAccount,"player", payer)
 //stake, nft_mint,receipt_account,metadata_account,master_edition_account,collection_master_edition,
 // collection_metadata_account,payer,rent,system_program,associated_token_program,token_program,token_metadata_program
 
@@ -176,6 +177,7 @@ async function initNft(payer: PublicKey, stake: PublicKey, collectionMasterEditi
         largestAccounts.value[0].address
     );
     console.log("largestAccountInfo", largestAccountInfo.value);
+    return [nft1,receive];
 }
 
 async function initStake(provider: AnchorProvider, mint: PublicKey, stake: PublicKey, metadataAddress: PublicKey, payer: PublicKey, TOKEN_METADATA_PROGRAM_ID: PublicKey, program: Program<AnchorToken>, metadata: {
@@ -250,6 +252,61 @@ async function getCollectAccount(provider: AnchorProvider, adminKeyPair: Keypair
         collectMetadata,
         collection_master_edition
     };
+}
+async function stakeNft(provider: AnchorProvider, mint: PublicKey, stake: PublicKey,  user: Keypair, sendAccount: PublicKey, program: Program<AnchorToken>) {
+    const [custody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"),user.publicKey.toBuffer(), mint.toBuffer()],
+        program.programId
+    );
+
+    const receive = anchor.utils.token.associatedAddress({
+        mint: mint,
+        owner: stake,
+    });
+    const context = {
+        stake,
+        custody,
+        nftMint:mint,
+        sendAccount,
+        receive,
+        user: user.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+    };
+// Call the `mintTokens` function to mint tokens
+    const txHash = await program.methods
+        .stakeNft()
+        .accounts(context)
+        .signers([user])
+        .rpc();
+    await provider.connection.confirmTransaction(txHash);
+    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=devnet`);
+
+    const metaplex = new Metaplex(provider.connection);
+    const nftByMint = await metaplex.nfts().findByMint({mintAddress: mint})
+    console.log('nftByMint', nftByMint)
+
+    let custody1 = await program.account.custody.fetch(custody);
+    console.log('custody1', custody1)
+
+    const ataSendInfo = await provider.connection.getParsedAccountInfo(sendAccount);
+
+    if (ataSendInfo.value) {
+        console.log(`sendAccount Account Info: ${JSON.stringify(ataSendInfo.value.data)}`);
+    } else {
+        console.log("No data found at the associated address.");
+    }
+    const atareceiveInfo = await provider.connection.getParsedAccountInfo(receive);
+
+    if (atareceiveInfo.value) {
+        console.log(`sendAccount Account Info: ${JSON.stringify(atareceiveInfo.value.data)}`);
+    } else {
+        console.log("No data found at the associated address.");
+    }
+    console.log("user {:?}", user.publicKey)
+
 }
 
 describe("anchor-token",  () => {
@@ -395,7 +452,8 @@ describe("anchor-token",  () => {
       console.log("mintCollAccount",collection)
       await initStake(provider, mint, stake, metadataAddress, payer, TOKEN_METADATA_PROGRAM_ID, program, metadata);
       await createNftCollect(provider, collection, collectMetadata,collection_master_edition,TOKEN_METADATA_PROGRAM_ID, stake, payer, program, collect_metadata);
-      await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
+     let [nftMint,nftReceive]= await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
+      await stakeNft(provider, nftMint, stake, userKeyPair, nftReceive, program);
   });
 
 

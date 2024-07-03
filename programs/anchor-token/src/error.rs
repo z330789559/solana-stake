@@ -10,4 +10,12 @@ pub enum StakeErrorCode {
     NoMatchSymbol,
     #[msg("must be admin")]
     MustBeAdmin,
+   #[msg("no stake")]
+    NoStake,
+    #[msg("not owner")]
+    NotOwner,
+    #[msg("time error")]
+    TimeError,
+    #[msg("amount error")]
+     AmountError
 }
