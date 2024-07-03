@@ -46,13 +46,91 @@ export type AnchorToken = {
         },
         {
           "name": "metadata",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "tokenMetadataProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "tokenMetadataProgram"
+            }
+          }
+        },
+        {
+          "name": "collectionMasterEdition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "tokenMetadataProgram"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  100,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "tokenMetadataProgram"
+            }
+          }
         },
         {
           "name": "mint",
           "writable": true,
           "pda": {
             "seeds": [
+              {
+                "kind": "account",
+                "path": "stake"
+              },
               {
                 "kind": "const",
                 "value": [
@@ -66,6 +144,96 @@ export type AnchorToken = {
                 ]
               }
             ]
+          }
+        },
+        {
+          "name": "receiptAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "stake"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
           }
         },
         {
@@ -85,6 +253,10 @@ export type AnchorToken = {
         {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
           "name": "tokenMetadataProgram"
@@ -116,7 +288,21 @@ export type AnchorToken = {
       "accounts": [
         {
           "name": "stake",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "metadata",
@@ -212,7 +398,8 @@ export type AnchorToken = {
                 "value": [
                   110,
                   102,
-                  116
+                  116,
+                  102
                 ]
               }
             ]
@@ -464,7 +651,23 @@ export type AnchorToken = {
           }
         },
         {
-          "name": "collection"
+          "name": "collection",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "payer",
@@ -518,7 +721,21 @@ export type AnchorToken = {
       "accounts": [
         {
           "name": "stake",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "nftMint",
@@ -528,9 +745,28 @@ export type AnchorToken = {
               {
                 "kind": "const",
                 "value": [
+                  102,
+                  111,
+                  114,
+                  109,
+                  97,
+                  116,
+                  33,
+                  32,
+                  40,
+                  34,
                   110,
                   102,
-                  116
+                  116,
+                  123,
+                  125,
+                  34,
+                  44,
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
                 ]
               }
             ]
@@ -543,7 +779,7 @@ export type AnchorToken = {
             "seeds": [
               {
                 "kind": "account",
-                "path": "payer"
+                "path": "user"
               },
               {
                 "kind": "const",
@@ -661,134 +897,28 @@ export type AnchorToken = {
         },
         {
           "name": "masterEditionAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMetadataProgram"
-              },
-              {
-                "kind": "account",
-                "path": "nftMint"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  100,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "tokenMetadataProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "collectionMasterEdition",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMetadataProgram"
-              },
-              {
-                "kind": "account",
-                "path": "collection"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  100,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "tokenMetadataProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "collectionMetadataAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMetadataProgram"
-              },
-              {
-                "kind": "account",
-                "path": "collection"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "tokenMetadataProgram"
-            }
-          }
+          "writable": true
         },
         {
-          "name": "collection"
+          "name": "collection",
+          "writable": true
         },
         {
           "name": "payer",
           "writable": true,
           "signer": true,
           "address": "6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj"
+        },
+        {
+          "name": "user"
         },
         {
           "name": "rent",
@@ -834,6 +964,24 @@ export type AnchorToken = {
         243
       ],
       "accounts": [
+        {
+          "name": "stake",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              }
+            ]
+          }
+        },
         {
           "name": "mint",
           "writable": true,
@@ -969,9 +1117,273 @@ export type AnchorToken = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "stakeNft",
+      "discriminator": [
+        38,
+        27,
+        66,
+        46,
+        69,
+        65,
+        151,
+        219
+      ],
+      "accounts": [
+        {
+          "name": "stake",
+          "writable": true
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "nftMint"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "store",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "stake"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "nftMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "nftMint"
+        },
+        {
+          "name": "receiptAccount",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "nftMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
+    {
+      "name": "custody",
+      "discriminator": [
+        1,
+        184,
+        48,
+        81,
+        93,
+        131,
+        63,
+        145
+      ]
+    },
     {
       "name": "stake",
       "discriminator": [
@@ -1009,6 +1421,26 @@ export type AnchorToken = {
     }
   ],
   "types": [
+    {
+      "name": "custody",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "start",
+            "type": "u64"
+          },
+          {
+            "name": "reward",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "initCollectParams",
       "type": {
