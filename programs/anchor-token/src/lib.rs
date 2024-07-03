@@ -23,6 +23,8 @@ pub mod anchor_token {
     use anchor_spl::metadata::mpl_token_metadata::types::{Collection, Creator, UseMethod, Uses};
     use anchor_spl::metadata::mpl_token_metadata::types::MetadataDelegateRole::Use;
     use anchor_spl::token;
+    use anchor_spl::token::spl_token;
+    use anchor_spl::token::spl_token::instruction::AuthorityType;
     use crate::error::StakeErrorCode;
     use super::*;
     pub fn init_token(ctx: Context<InitToken>, metadata: InitTokenParams) -> Result<()> {
@@ -136,6 +138,7 @@ pub mod anchor_token {
             token_account: Default::default(),
             nft_mint: ctx.accounts.mint.key(),
             nft_collection: ctx.accounts.mint.key(),
+            stake_count: 0,
             bump_seed: ctx.bumps.stake,
             id: 0,
         });
@@ -169,72 +172,6 @@ pub mod anchor_token {
 
 
 
-
-    pub fn mint_extra_nft(ctx: Context<MintSingleNFT>, nft_data: NftData) -> Result<()> {
-        // Define seeds and signer for minting tokens
-
-        let seeds=&["nft".as_bytes(), &[ctx.bumps.nft_mint]];
-        let signer_seeds = [&seeds[..]];
-        create_metadata_accounts_v3(
-            CpiContext::new_with_signer(
-                ctx
-                    .accounts
-                    .token_metadata_program
-                    .to_account_info()
-                    .clone(),
-                CreateMetadataAccountsV3 {
-                    metadata: ctx.accounts.metadata_account.to_account_info().clone(),
-                    mint: ctx.accounts.nft_mint.to_account_info().clone(),
-                    mint_authority: ctx.accounts.nft_mint.to_account_info().clone(),
-                    payer: ctx.accounts.payer.to_account_info().clone(),
-                    update_authority: ctx.accounts.nft_mint.to_account_info().clone(),
-                    system_program: ctx.accounts.system_program.to_account_info().clone(),
-                    rent:  ctx.accounts.rent.to_account_info().clone(),
-                },
-                &signer_seeds,
-            ),
-            DataV2 {
-                name: format!("Weinland Stake Nft  {}", ctx.accounts.stake.id),
-                symbol: String::from("WSN"),
-                uri: format!("{}/{}.json", nft_data.uri, ctx.accounts.stake.id),
-                seller_fee_basis_points: 0,
-                creators: None,
-                collection: Some(Collection {
-                    key: ctx.accounts.collection.key(),
-                    verified: false, // Verified in cpi
-                }),
-                uses: None,
-            },
-            true,
-            true,
-            None,
-        )?;
-        ctx.accounts.stake.id += 1;
-        create_master_edition_v3(
-            CpiContext::new_with_signer(
-                ctx
-                    .accounts
-                    .token_metadata_program
-                    .to_account_info()
-                    .clone(),
-                CreateMasterEditionV3 {
-                    edition: ctx.accounts.master_edition_account.to_account_info().clone(),
-                    mint: ctx.accounts.nft_mint.to_account_info().clone(),
-                    update_authority: ctx.accounts.nft_mint.to_account_info().clone(),
-                    mint_authority: ctx.accounts.nft_mint.to_account_info().clone(),
-                    metadata: ctx.accounts.metadata_account.to_account_info().clone(),
-                    payer: ctx.accounts.payer.to_account_info().clone(),
-                    token_program: ctx.accounts.token_program.to_account_info().clone(),
-                    system_program: ctx.accounts.system_program.to_account_info().clone(),
-                    rent:  ctx.accounts.rent.to_account_info().clone(),
-                },
-                &signer_seeds,
-            ),
-            Some(1),
-        )?;
-        Ok(())
-
-    }
 
     pub fn mint_nft(ctx: Context<MintNFT>, nft_data: NftData) -> Result<()> {
         // Define seeds and signer for minting tokens
@@ -340,8 +277,23 @@ pub mod anchor_token {
 
     pub fn stake_nft(ctx: Context<StakeNFT>)-> Result<()>{
 
-
-
+        token::set_authority(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                token::SetAuthority {
+                    current_authority: ctx.accounts.user.to_account_info(),
+                    account_or_mint: ctx.accounts.nft_mint.to_account_info(),
+                },
+            ),
+           AuthorityType::AccountOwner,
+            Some(ctx.accounts.custody.key()),
+        )?;
+        ctx.accounts.custody.set_inner(Custody{
+            owner: *ctx.accounts.user.key,
+            start: ctx.accounts.clock.unix_timestamp,
+            reward: 0,
+        });
+        ctx.accounts.stake.stake_count += 1;
         Ok(())
     }
 }
@@ -352,7 +304,7 @@ pub mod anchor_token {
 #[derive(Default)]
 pub struct  Custody{
     pub owner: Pubkey,
-    pub start: u64,
+    pub start: i64,
     pub reward: u64,
 }
 
@@ -367,52 +319,28 @@ pub struct StakeNFT<'info>{
         init,
         payer = user,
         space = 8 + std::mem::size_of::<Custody>(),
-        seeds = ["custody".as_bytes(),nft_mint.key().as_ref(), user.key().as_ref()],
+        seeds = ["custody".as_bytes(),user.key().as_ref(),nft_mint.key().as_ref()],
         bump
     )]
     pub custody: Box<Account<'info, Custody>>,
 
     #[account(
-        init_if_needed,
-        payer = user,
-        associated_token::mint = nft_mint,
-        associated_token::authority = stake,
-    )]
-    pub store: Box<Account<'info, TokenAccount>>,
-
-    #[account(
-        mint::authority = nft_mint,
+        mint::authority = stake,
     )]
     pub nft_mint: Account<'info, Mint>,
 
-    #[account(
-        associated_token::mint = nft_mint,
-        associated_token::authority = user,
-    )]
-    pub receipt_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
     mut
     )]
     pub user: Signer<'info>,
-
+    pub clock: Sysvar<'info, Clock>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
-impl<'info>  StakeNFT<'info>{
-    fn transfer_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>>{
-        let cpi_accounts = Transfer{
-            from: self.receipt_account.to_account_info(),
-            to: self.custody.to_account_info(),
-            authority: self.user.to_account_info(),
-        };
-        CpiContext::new(self.token_program.to_account_info(),cpi_accounts)
-    }
-
-}
 
 
 
@@ -639,6 +567,7 @@ pub struct Stake {
     pub nft_mint: Pubkey,  //nft mint account
     // Collection of NFTs minted representing a receipt voucher
     pub nft_collection: Pubkey,  //nft collect mint account
+    pub stake_count:i64,
     pub bump_seed: u8,  //bump seed
     pub id: u32,
 }
