@@ -23,11 +23,11 @@ async function createNftCollect(provider: AnchorProvider, mintCollAccount: Publi
     name: string;
     uri: string
 }) {
-    // const info = await provider.connection.getAccountInfo(mintCollAccount);
-    // console.log(info)
-    // if (info) {
-    //     return; // Do not attempt to initialize if already initialized
-    // }
+    const info = await provider.connection.getAccountInfo(mintCollAccount);
+    console.log(info)
+    if (info) {
+        return; // Do not attempt to initialize if already initialized
+    }
     const receiptAccount = anchor.utils.token.associatedAddress({
         mint: mintCollAccount,
         owner: stake,
@@ -282,7 +282,7 @@ async function stakeNft(provider: AnchorProvider, mint: PublicKey, stake: Public
         .signers([user])
         .rpc();
     await provider.connection.confirmTransaction(txHash);
-    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=devnet`);
+    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`);
 
     const metaplex = new Metaplex(provider.connection);
     const nftByMint = await metaplex.nfts().findByMint({mintAddress: mint})
@@ -306,7 +306,124 @@ async function stakeNft(provider: AnchorProvider, mint: PublicKey, stake: Public
         console.log("No data found at the associated address.");
     }
     console.log("user {:?}", user.publicKey)
+    return [custody,receive]
 
+}
+
+async function unstakeNft(provider: AnchorProvider, nftMint: PublicKey, stake: PublicKey, userKeyPair: Keypair, userReceive: PublicKey, custody: PublicKey, holdAccount: PublicKey, tokenMint: PublicKey,program: Program<AnchorToken>) {
+    const [reward] = PublicKey.findProgramAddressSync(
+        [Buffer.from("reward"),userKeyPair.publicKey.toBuffer()],
+        program.programId
+    );
+
+    const receiveReward = anchor.utils.token.associatedAddress({
+        mint: tokenMint,
+        owner: userKeyPair.publicKey,
+    });
+    const context = {
+        stake,
+        holdAccount:holdAccount,
+        nftMint,
+            receive:userReceive,
+      reward,
+        custody,
+        user: userKeyPair.publicKey,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+    };
+    const txHash = await program.methods
+        .unStake()
+        .accounts(context)
+        .signers([userKeyPair])
+        .rpc();
+    await provider.connection.confirmTransaction(txHash);
+    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`);
+
+    const metaplex = new Metaplex(provider.connection);
+    const nftByMint = await metaplex.nfts().findByMint({mintAddress: nftMint})
+    console.log('nftByMint', nftByMint)
+
+    let custody1 = await program.account.custody.fetch(custody);
+    console.log('custody1', custody1)
+
+    let rewards  = await program.account.reward.fetch(reward);
+    console.log(rewards)
+
+
+}
+
+async function mintToken(provider: AnchorProvider, userKeyPair: Keypair, stake: PublicKey, mint: PublicKey, program: Program<AnchorToken>) {
+
+    const destination = anchor.utils.token.associatedAddress({
+        mint: mint,
+        owner: userKeyPair.publicKey,
+    });
+
+ const context={
+     stake,
+     mint,
+     destination,
+     payer:userKeyPair.publicKey,
+     rent: SYSVAR_RENT_PUBKEY,
+     systemProgram: SystemProgram.programId,
+     tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+     associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+ }
+    const txHash = await program.methods
+        .mintTokens(new BN(100 * 10 ** 9 ))
+        .accounts(context)
+        .signers([userKeyPair])
+        .rpc();
+    await provider.connection.confirmTransaction(txHash);
+    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`);
+
+    const metaplex = new Metaplex(provider.connection);
+    const nftByMint = await metaplex.nfts().findByMint({mintAddress: mint})
+    console.log('nftByMint', nftByMint)
+
+    let custody1 = await program.account.stake.fetch(stake);
+    console.log('stake', custody1)
+
+    const  tokenBalance = await provider.connection.getTokenAccountBalance(destination)
+    console.log('tokenBalance', tokenBalance)
+}
+
+async function claimRewards(provider: AnchorProvider, userKeyPair: Keypair, mint: PublicKey, stake: PublicKey, program: Program<AnchorToken>) {
+    const receiveToken = anchor.utils.token.associatedAddress({
+        mint: mint,
+        owner: userKeyPair.publicKey,
+    });
+    const [reward] =PublicKey.findProgramAddressSync(
+        [Buffer.from("reward"),userKeyPair.publicKey.toBuffer()],
+        program.programId
+    )
+    const context={
+        stake,
+        receiveToken,
+        tokenMint:mint,
+        reward:reward,
+        user: userKeyPair.publicKey,
+        rent: SYSVAR_RENT_PUBKEY,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+    }
+    const txHash = await program.methods
+        .claim()
+        .accounts(context)
+        .signers([userKeyPair])
+        .rpc();
+    await provider.connection.confirmTransaction(txHash);
+    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`);
+
+    const tokenBalance = await provider.connection.getTokenAccountBalance(receiveToken)
+    console.log('tokenBalance', tokenBalance)
+
+
+    const rewardsAmount = await  program.account.reward.fetch(reward)
+    console.log('rewardsAmount', rewardsAmount)
 }
 
 describe("anchor-token",  () => {
@@ -413,7 +530,7 @@ describe("anchor-token",  () => {
     TOKEN_METADATA_PROGRAM_ID
     );
 
-
+    const user2KeyPair= Keypair.generate();
     beforeEach(async () => {
      await provider.connection.requestAirdrop(
          provider.wallet.publicKey,
@@ -424,8 +541,10 @@ describe("anchor-token",  () => {
             userKeyPair.publicKey,
             100000000 * anchor.web3.LAMPORTS_PER_SOL
         );
+
+        let tx = new Transaction();
         // Call the `initToken` function to initialize the mint account
-        const transferTransaction = new Transaction().add(
+        const transferTransaction = tx.add(
             SystemProgram.transfer({
                 fromPubkey: provider.wallet.publicKey,
                 toPubkey: userKeyPair.publicKey,
@@ -433,8 +552,14 @@ describe("anchor-token",  () => {
             })
         );
 
-
-       await provider.sendAndConfirm(transferTransaction);
+        const transferTransaction2 = tx.add(
+            SystemProgram.transfer({
+                fromPubkey: provider.wallet.publicKey,
+                toPubkey: user2KeyPair.publicKey,
+                lamports: 10000 * anchor.web3.LAMPORTS_PER_SOL,
+            })
+        );
+       await provider.sendAndConfirm(tx);
      const balance = await provider.connection.getBalance(userKeyPair.publicKey);
      console.log(`Airdropped 1 SOL to account ${userKeyPair.publicKey.toBase58()}, balance: ${balance / anchor.web3.LAMPORTS_PER_SOL} SOL`);
       const collectMintKeyPair= Keypair.generate();
@@ -452,10 +577,22 @@ describe("anchor-token",  () => {
       console.log("mintCollAccount",collection)
       await initStake(provider, mint, stake, metadataAddress, payer, TOKEN_METADATA_PROGRAM_ID, program, metadata);
       await createNftCollect(provider, collection, collectMetadata,collection_master_edition,TOKEN_METADATA_PROGRAM_ID, stake, payer, program, collect_metadata);
-     let [nftMint,nftReceive]= await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
-      await stakeNft(provider, nftMint, stake, userKeyPair, nftReceive, program);
+     let [nftMint,userReceive]= await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
+      let [custody,holdAccount] = await stakeNft(provider, nftMint, stake, userKeyPair, userReceive, program);
+      await unstakeNft(provider, nftMint, stake, userKeyPair, userReceive,custody,holdAccount,mint, program);
+
+      await claimRewards(provider, userKeyPair, mint, stake, program);
+      await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
+
+      await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,user2KeyPair);
   });
 
+    it.skip("mint_token", async()=>{
+        const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
+        console.log("mintCollAccount",collection)
+        await initStake(provider, mint, stake, metadataAddress, payer, TOKEN_METADATA_PROGRAM_ID, program, metadata);
+         await mintToken(provider,userKeyPair,stake,mint,program);
+    })
 
   it.skip("create_nft_collect", async () => {
     // Check if the mint account already exists
@@ -501,7 +638,7 @@ describe("anchor-token",  () => {
       .accounts(context)
       .rpc();
     await provider.connection.confirmTransaction(txHash);
-    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=devnet`);
+    console.log(`  https://explorer.solana.com/tx/${txHash}?cluster=custom&customUrl=http%3A%2F%2Flocalhost%3A8899`);
 
     // check icy balance of payer
     const postBalance = (

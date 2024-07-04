@@ -1,5 +1,5 @@
 pub mod error;
-
+#[warn(unused_assignments)]
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
     program_option::{COption},
@@ -13,28 +13,19 @@ use anchor_spl::{
 };
 use anchor_spl::token::Transfer;
 
-declare_id!("41zjGbHpvfR155fSkxEhrYx1k9oDqMMiXqfy9BNuRyaB");
+declare_id!("EkdYVCXu85hTRDzZn9k5ivkjjjQDJgTUadcGEUz7JYXr");
 const ADMIN_PUBKEY: Pubkey = pubkey!("6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj");
-// pub const ADMIN_KEY: &'static str ="6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj";
 
 pub const URL: &'static str = "https://weinland.io/";
 
 #[program]
 pub mod anchor_token {
-    use std::char::decode_utf16;
-    use anchor_spl::metadata::{create_master_edition_v3, CreateMasterEditionV3, set_and_verify_collection, SetAndVerifyCollection, verify_collection, VerifyCollection};
-    use anchor_spl::metadata::mpl_token_metadata::instructions::VerifyCollectionBuilder;
+    use anchor_spl::metadata::{create_master_edition_v3, CreateMasterEditionV3,verify_collection, VerifyCollection};
     use anchor_spl::metadata::mpl_token_metadata::types::{Collection, Creator, UseMethod, Uses};
-    use anchor_spl::metadata::mpl_token_metadata::types::MetadataDelegateRole::Use;
     use anchor_spl::token;
-    use anchor_spl::token::spl_token;
-    use anchor_spl::token::spl_token::instruction::AuthorityType;
     use crate::error::StakeErrorCode;
     use super::*;
     pub fn init_token(ctx: Context<InitToken>, metadata: InitTokenParams) -> Result<()> {
-       // let admin=  ADMIN_KEY.parse::<Pubkey>().expect("Failed to parse Admin Key");
-       //  require!(admin == *ctx.accounts.payer.key, StakeErrorCode::MustBeAdmin);
-        // Define seeds and signer for creating a token account
         let seeds = &["stake".as_bytes(), &[ctx.bumps.stake]];
         let signer = [&seeds[..]];
         // Define the token data with provided metadata
@@ -149,13 +140,13 @@ pub mod anchor_token {
         // Define seeds and signer for minting tokens
         let seeds = &["stake".as_bytes(), &[ctx.bumps.stake]];
         let signer = [&seeds[..]];
-
+   msg!("mint");
         // Mint tokens to the destination account with the given quantity
         mint_to(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 MintTo {
-                    authority: ctx.accounts.mint.to_account_info(),
+                    authority: ctx.accounts.stake.to_account_info(),
                     to: ctx.accounts.destination.to_account_info(),
                     mint: ctx.accounts.mint.to_account_info(),
                 },
@@ -294,13 +285,15 @@ pub mod anchor_token {
     pub fn un_stake(ctx: Context<UnStakeNFT>)-> Result<()>{
         let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
         let signer_seeds = [&mint_seeds[..]];
-         require!(ctx.accounts.custody.start > 0 , StakeErrorCode::NoStake);
-        require!(ctx.accounts.custody.owner == *ctx.accounts.user.key, StakeErrorCode::NotOwner);
+        msg!("unstake amount {}");
 
          let during = ctx.accounts.clock.unix_timestamp.checked_sub(ctx.accounts.custody.start).ok_or(StakeErrorCode::TimeError)?;
-         let amount = ctx.accounts.stake.stake_count.checked_mul(during as u64).ok_or(StakeErrorCode::AmountError)?;
-
-        token::mint_to(ctx.accounts.mint_ctx(&signer_seeds), amount)?;
+         let mut  amount = ctx.accounts.stake.reward_count.checked_mul(during).ok_or(StakeErrorCode::AmountError)?;
+          amount=100i64;
+        ctx.accounts.reward.total_amount += amount;
+        ctx.accounts.reward.amount += amount;
+        ctx.accounts.reward.owner = *ctx.accounts.user.key;
+        msg!("reward amount success}");
         ctx.accounts.stake.stake_count -=1;
         let cpi_accounts = Transfer {
             from: ctx.accounts.hold_account.to_account_info(),
@@ -308,16 +301,79 @@ pub mod anchor_token {
             authority: ctx.accounts.stake.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts,&signer_seeds);
         token::transfer(cpi_ctx, 1)?;
         ctx.accounts.custody.start=0;
         Ok(())
 
     }
+    pub fn claim(ctx: Context<ClaimReward>)-> Result<()>{
+        let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
+        let signer_seeds = [&mint_seeds[..]];
+        token::mint_to(ctx.accounts.mint_ctx(&signer_seeds), ctx.accounts.reward.amount as u64)?;
+        ctx.accounts.reward.amount = 0;
+        Ok(())
+    }
 }
 
 
 
+
+
+#[derive(Accounts)]
+pub struct  ClaimReward<'info>{
+    #[account(
+        mut,
+        seeds=["stake".as_bytes()],
+        bump
+    )]
+    pub stake: Account<'info, Stake>,
+    #[account(
+        init_if_needed,
+        payer=user,
+        associated_token::mint = token_mint,
+        associated_token::authority = user,
+    )]
+    pub receive_token: Box<Account<'info, TokenAccount>>,
+
+
+    #[account(
+        mut,
+        constraint = token_mint.mint_authority == COption::Some(stake.key()),
+    )]
+    pub token_mint: Account<'info, Mint>,
+
+    #[account(
+        mut,
+        seeds = ["reward".as_bytes(),user.key().as_ref()],
+        bump,
+        constraint = reward.amount > 0,
+        constraint = reward.owner == user.key(),
+    )]
+    pub reward: Box<Account<'info, Reward>>,
+
+
+    #[account(
+        mut
+    )]
+    pub user: Signer<'info>,
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+}
+
+impl<'info,'a, 'b, 'c,> ClaimReward<'info,> {
+    fn mint_ctx(&self,signer_seeds: &'a [&'b [&'c [u8]]]) -> CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
+        let cpi_accounts = MintTo {
+            mint: self.token_mint.to_account_info(),
+            to: self.receive_token.to_account_info(),
+            authority: self.stake.to_account_info(),
+        };
+        CpiContext::new_with_signer(self.token_program.to_account_info(), cpi_accounts, signer_seeds)
+    }
+
+}
 
 #[account]
 #[derive(Default)]
@@ -337,11 +393,15 @@ pub struct  UnStakeNFT<'info>{
     pub stake: Account<'info, Stake>,
 
     #[account(
+        mut,
         associated_token::mint = nft_mint,
         associated_token::authority = stake,
     )]
     pub hold_account: Box<Account<'info, TokenAccount>>,
 
+    #[account(
+    mut
+    )]
     /// CHECK: Checked by cpi
     pub nft_mint: UncheckedAccount<'info>,
 
@@ -353,19 +413,6 @@ pub struct  UnStakeNFT<'info>{
     )]
     pub receive: Box<Account<'info, TokenAccount>>,
 
-    #[account(
-         mut,
-        associated_token::mint = nft_mint,
-        associated_token::authority = user,
-    )]
-    pub receive_token: Box<Account<'info, TokenAccount>>,
-
-
-    #[account(
-      mut,
-      constraint = token_mint.mint_authority == COption::Some(stake.key()),
-    )]
-    pub token_mint: Account<'info, Mint>,
 
 
     #[account(
@@ -373,13 +420,15 @@ pub struct  UnStakeNFT<'info>{
         payer = user,
         space = 8 + std::mem::size_of::<Reward>(),
         seeds = ["reward".as_bytes(),user.key().as_ref()],
-        bump
+        bump,
     )]
    pub reward: Box<Account<'info, Reward>>,
 
     #[account(
         seeds = ["custody".as_bytes(),user.key().as_ref(),nft_mint.key().as_ref()],
-        bump
+        bump,
+        constraint = custody.start > 0,
+        constraint = custody.owner == user.key(),
     )]
     pub custody: Box<Account<'info, Custody>>,
 
@@ -393,19 +442,7 @@ pub struct  UnStakeNFT<'info>{
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
-impl<'info,'a, 'b, 'c,> UnStakeNFT<'info,> {
-    fn mint_ctx(&self,signer_seeds: &'a [&'b [&'c [u8]]]) -> CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
-        let cpi_accounts = MintTo {
-            mint: self.token_mint.to_account_info(),
-            to: self.receive_token.to_account_info(),
-            authority: self.stake.to_account_info(),
-        };
-        CpiContext::new(self.token_program.to_account_info(), cpi_accounts).with_signer(
-            signer_seeds,
-        )
-    }
 
-}
 
 
 
@@ -743,23 +780,6 @@ pub struct InitCollect<'info> {
     )]
     pub receipt_account: Box<Account<'info, TokenAccount>>,
 
-
-    // #[account(
-    //     mut,
-    //     seeds = ["metadata".as_bytes(), token_metadata_program.key().as_ref(), mint.key().as_ref()],
-    //     seeds::program = token_metadata_program.key(),
-    //     bump,
-    // )]
-    // /// CHECK: Checked by cpi
-    // pub metadata: UncheckedAccount<'info>,
-    //
-    // #[account(
-    //     seeds = [b"weiland"],
-    //     bump,
-    //     mint::decimals = 0,
-    //     mint::authority = stake,
-    // )]
-    // pub mint: Account<'info, Mint>,
     #[account(
         mut,
     address=ADMIN_PUBKEY,
@@ -832,7 +852,10 @@ pub struct MintTokens<'info> {
         associated_token::authority = payer,
     )]
     pub destination: Account<'info, TokenAccount>,
-    #[account(mut)]
+    #[account(
+        mut,
+        address=ADMIN_PUBKEY,
+    )]
     pub payer: Signer<'info>,
     pub rent: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
