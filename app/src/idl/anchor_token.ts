@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/anchor_token.json`.
  */
 export type AnchorToken = {
-  "address": "EkdYVCXu85hTRDzZn9k5ivkjjjQDJgTUadcGEUz7JYXr",
+  "address": "6EGLSq5shhzLiavFRKPLQtQxLuyqfcnypjih9ENJLGTe",
   "metadata": {
     "name": "anchorToken",
     "version": "0.1.0",
@@ -412,7 +412,7 @@ export type AnchorToken = {
           "name": "payer",
           "writable": true,
           "signer": true,
-          "address": "6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj"
+          "address": "5iZsj42KgNfqRWRuv6nTpUpWTVT1CVijr2jZGdb1xhq7"
         },
         {
           "name": "rent",
@@ -501,7 +501,7 @@ export type AnchorToken = {
           "name": "payer",
           "writable": true,
           "signer": true,
-          "address": "6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj"
+          "address": "5iZsj42KgNfqRWRuv6nTpUpWTVT1CVijr2jZGdb1xhq7"
         },
         {
           "name": "rent",
@@ -739,7 +739,7 @@ export type AnchorToken = {
           "name": "payer",
           "writable": true,
           "signer": true,
-          "address": "6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj"
+          "address": "5iZsj42KgNfqRWRuv6nTpUpWTVT1CVijr2jZGdb1xhq7"
         },
         {
           "name": "user"
@@ -917,7 +917,7 @@ export type AnchorToken = {
           "name": "payer",
           "writable": true,
           "signer": true,
-          "address": "6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj"
+          "address": "5iZsj42KgNfqRWRuv6nTpUpWTVT1CVijr2jZGdb1xhq7"
         },
         {
           "name": "rent",

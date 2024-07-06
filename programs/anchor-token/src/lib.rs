@@ -13,11 +13,9 @@ use anchor_spl::{
 };
 use anchor_spl::token::Transfer;
 
-declare_id!("EkdYVCXu85hTRDzZn9k5ivkjjjQDJgTUadcGEUz7JYXr");
-const ADMIN_PUBKEY: Pubkey = pubkey!("6HCRpRm4XaDcDzs1yA3ZtUTL3HVFNcydMPzfxkiiyrJj");
-
+declare_id!("6EGLSq5shhzLiavFRKPLQtQxLuyqfcnypjih9ENJLGTe");
+const ADMIN_PUBKEY: Pubkey = pubkey!("5iZsj42KgNfqRWRuv6nTpUpWTVT1CVijr2jZGdb1xhq7");
 pub const URL: &'static str = "https://weinland.io/";
-
 #[program]
 pub mod anchor_token {
     use anchor_spl::metadata::{create_master_edition_v3, CreateMasterEditionV3,verify_collection, VerifyCollection};
@@ -53,33 +51,19 @@ pub mod anchor_token {
             },
             &signer,
         );
-
-        // Call to create metadata accounts with the given token data
         create_metadata_accounts_v3(metadata_ctx, token_data, false, true, None)?;
         ctx.accounts.stake.token_account = ctx.accounts.mint.key();
         ctx.accounts.stake.reward_count = 100;
         ctx.accounts.stake.bump_seed = ctx.bumps.stake;
-        msg!("Token mint created successfully.");
         Ok(())
     }
 
-
     pub fn init_nft_collect(ctx: Context<InitCollect>, metadata: InitCollectParams) -> Result<()> {
-
-// 生成新的账户地址
-
 
         // 验证生成的地址是否匹配
         let seeds = &["stake".as_bytes(), &[ctx.bumps.stake]];
         let signer = [&seeds[..]];
 
-
-        // // Define seeds and signer for creating a token account
-        // // let admin=  ADMIN_KEY.parse::<Pubkey>().expect("Failed to parse Admin Key");
-        // // require!(admin == *ctx.accounts.payer.key, StakeErrorCode::MustBeAdmin);
-        //
-        //
-        // // Define the token data with provided metadata
         token::mint_to(ctx.accounts.mint_ctx().with_signer(&signer), 1)?;
         let token_data: DataV2 = DataV2 {
             name: metadata.name,
@@ -132,7 +116,6 @@ pub mod anchor_token {
         // msg!("Token mint created successfully.");
         ctx.accounts.stake.nft_collection= ctx.accounts.mint.key();
 
-
         Ok(())
     }
 
@@ -158,17 +141,14 @@ pub mod anchor_token {
         Ok(())
     }
 
-
-
-
     pub fn mint_nft(ctx: Context<MintNFT>, nft_data: NftData) -> Result<()> {
         // Define seeds and signer for minting tokens
         msg!("stake bump {:?}, mint authority {:?}",ctx.bumps.stake, ctx.accounts.nft_mint.mint_authority);
         let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
         let mint_nft_signer = [&mint_seeds[..]];
-
-        token::mint_to(ctx.accounts.mint_ctx().with_signer(&mint_nft_signer), 1)?;
-
+         mint_to(ctx.accounts.mint_ctx().with_signer(&mint_nft_signer), 1)?;
+        let name =if nft_data.name.is_empty() {format!("Weinland Stake Nft  #{}", ctx.accounts.stake.id)} else {nft_data.name};
+        let symbol = if nft_data.symbol.is_empty() {String::from("WSN")} else {nft_data.symbol};
         create_metadata_accounts_v3(
             CpiContext::new_with_signer(
                 ctx
@@ -187,10 +167,11 @@ pub mod anchor_token {
                 },
                 &mint_nft_signer,
             ),
+
             DataV2 {
-                name: format!("Weinland Stake Nft  #{}", ctx.accounts.stake.id),
-                symbol: String::from("WSN"),
-                uri: format!("{}/{}.json", nft_data.uri, ctx.accounts.stake.id),
+                name,
+                symbol,
+                uri: format!("{}.json", nft_data.uri),
                 seller_fee_basis_points: 0,
                 creators: Some(vec![Creator {
                     address: ctx.accounts.stake.key(),
@@ -234,8 +215,6 @@ pub mod anchor_token {
             ),
             Some(1),
         )?;
-        // let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
-        // let mint_nft_signer = [&mint_seeds[..]];
         let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
         let verify_signer_seeds = [&mint_seeds[..]];
 
@@ -262,8 +241,6 @@ pub mod anchor_token {
 
         Ok(())
     }
-
-
     pub fn stake_nft(ctx: Context<StakeNFT>)-> Result<()>{
         let cpi_accounts = Transfer {
             from: ctx.accounts.send_account.to_account_info(),
@@ -285,7 +262,6 @@ pub mod anchor_token {
     pub fn un_stake(ctx: Context<UnStakeNFT>)-> Result<()>{
         let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
         let signer_seeds = [&mint_seeds[..]];
-        msg!("unstake amount {}");
 
          let during = ctx.accounts.clock.unix_timestamp.checked_sub(ctx.accounts.custody.start).ok_or(StakeErrorCode::TimeError)?;
          let mut  amount = ctx.accounts.stake.reward_count.checked_mul(during).ok_or(StakeErrorCode::AmountError)?;
@@ -293,7 +269,6 @@ pub mod anchor_token {
         ctx.accounts.reward.total_amount += amount;
         ctx.accounts.reward.amount += amount;
         ctx.accounts.reward.owner = *ctx.accounts.user.key;
-        msg!("reward amount success}");
         ctx.accounts.stake.stake_count -=1;
         let cpi_accounts = Transfer {
             from: ctx.accounts.hold_account.to_account_info(),
@@ -315,9 +290,6 @@ pub mod anchor_token {
         Ok(())
     }
 }
-
-
-
 
 
 #[derive(Accounts)]
@@ -412,9 +384,6 @@ pub struct  UnStakeNFT<'info>{
         associated_token::authority = user,
     )]
     pub receive: Box<Account<'info, TokenAccount>>,
-
-
-
     #[account(
         init_if_needed,
         payer = user,
@@ -441,10 +410,6 @@ pub struct  UnStakeNFT<'info>{
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
-
-
-
-
 
 #[account]
 #[derive(Default)]
@@ -499,10 +464,6 @@ pub struct StakeNFT<'info>{
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
-
-
-
-
 
 #[derive(Accounts)]
 #[instruction(
@@ -591,8 +552,6 @@ impl <'info> crate::MintNFT<'info> {
         CpiContext::new(self.token_program.to_account_info(), cpi_accounts)
     }
 }
-//stake, nft_mint,receipt_account,metadata_account,master_edition_account,collection_master_edition,
-// collection_metadata_account,payer,rent,system_program,associated_token_program,token_program,token_metadata_program
 #[derive(Accounts)]
 #[instruction(
     params: NftData
@@ -675,7 +634,6 @@ pub struct MintSingleNFT<'info> {
 }
 
 
-// Struct defining the context for initializing a token
 #[derive(Accounts)]
 #[instruction(
     params: InitTokenParams

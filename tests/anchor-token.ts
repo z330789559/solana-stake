@@ -106,7 +106,23 @@ async function initNft(payer: PublicKey, stake: PublicKey, collectionMasterEditi
     console.log("masterEditionAccount", masterEditionAccount,"player", payer)
 //stake, nft_mint,receipt_account,metadata_account,master_edition_account,collection_master_edition,
 // collection_metadata_account,payer,rent,system_program,associated_token_program,token_program,token_metadata_program
+ console.log(
+      stake,
+        nft1,
+        receive,
+        nftMetadata,
+        masterEditionAccount,
+        collectionMasterEdition,
+        collectMetadata,
+        collect,
+        payer,
+        SYSVAR_RENT_PUBKEY,
+        SystemProgram.programId,
+        anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+        anchor.utils.token.TOKEN_PROGRAM_ID,
+        TOKEN_METADATA_PROGRAM_ID
 
+ )
     const context = {
         stake,
         nftMint: nft1,
@@ -430,19 +446,26 @@ describe("anchor-token",  () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
+    // const program = new  anchor.Program<AnchorToken>(
+    //
+    // )
 
   const program = anchor.workspace.AnchorToken as Program<AnchorToken>;
 
   // Metaplex Constants
-    const userKeyPair= Keypair.generate();
-  const METADATA_SEED = "metadata";
+    const adminKeyPair= Keypair.fromSecretKey(
+        new Uint8Array([79,222,27,49,153,92,24,31,49,5,86,84,62,24,58,31,200,179,199,58,94,74,161,82,241,74,133,201,44,159,148,9,70,20,187,118,42,175,215,35,219,99,32,202,22,252,2,74,146,139,103,114,192,16,159,102,206,30,204,194,192,78,132,222])
+    );
+
+    console.log("adminKeyPair", adminKeyPair.publicKey.toBase58())
+    const METADATA_SEED = "metadata";
   const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
   );
-  const adminKeyPair= Keypair.fromSecretKey(
-        new Uint8Array([  68,204,182,136,63,94,90,250,207,47,64,171,238,65,90,48,177,42,3,74,238,142,87,102,49,31,150,162,180,14,17,38,78,112,166,45,182,188,172,3,120,148,74,81,179,101,154,84,255,59,164,230,48,173,88,55,18,219,196,209,161,58,101,24])
+  const userKeyPair= Keypair.fromSecretKey(
+        new Uint8Array([172,148,165,89,214,130,50,246,7,36,26,112,38,133,40,132,53,199,56,106,114,41,147,86,129,163,239,9,83,199,215,243,65,165,6,66,68,62,201,59,151,117,222,39,143,34,173,6,223,55,196,36,150,167,29,226,64,189,192,162,119,130,188,97])
   )
-
+    console.log("userKeyPair", userKeyPair.publicKey.toBase58())
   // Constants from our program
   const MINT_SEED = "mint";
   const COLLECT_SEED = "collect";
@@ -563,7 +586,7 @@ describe("anchor-token",  () => {
      const balance = await provider.connection.getBalance(userKeyPair.publicKey);
      console.log(`Airdropped 1 SOL to account ${userKeyPair.publicKey.toBase58()}, balance: ${balance / anchor.web3.LAMPORTS_PER_SOL} SOL`);
       const collectMintKeyPair= Keypair.generate();
-     //1. 创建collect mint账号
+     // 1. 创建collect mint账号
 
 
 
@@ -571,7 +594,12 @@ describe("anchor-token",  () => {
    // await initNft(nft, payer, stake, nftMetadata, masterEditionAccount, collectionMasterEdition, collectMetadata, collect, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider);
  })
 
-  it("initialize", async () => {
+
+    it.skip("print address", async ()=>{
+        const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
+        console.log("mintCollAccount: ",collection,collectMetadata,collection_master_edition,collection_master_edition)
+    })
+  it.skip("initialize", async () => {
     // Check if the mint account already exists
       const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
       console.log("mintCollAccount",collection)
@@ -584,7 +612,7 @@ describe("anchor-token",  () => {
       await claimRewards(provider, userKeyPair, mint, stake, program);
       await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
 
-      await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,user2KeyPair);
+      // await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,user2KeyPair);
   });
 
     it.skip("mint_token", async()=>{
@@ -652,17 +680,13 @@ describe("anchor-token",  () => {
   });
 
 
-  it.skip("mint_nft", async () => {
+  it("mint_nft", async () => {
       console.log("  Mint not found. Attempting to initialize.");
       const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
 
 
       await initNft( payer, stake, collectionMasterEdition, collectMetadata, collect, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
       console.log('minted 0')
-      await initNft(payer, stake, collectionMasterEdition, collectMetadata, collect, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider, userKeyPair);
-      console.log('minted 1')
-      await initNft(payer, stake, collectionMasterEdition, collectMetadata, collect, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider, userKeyPair);
-      console.log('minted 2')
 
   });
 
