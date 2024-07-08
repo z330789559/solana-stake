@@ -15,6 +15,7 @@ import { AnchorToken } from "../app/src/idl/anchor_token";
 import  {Metaplex} from "@metaplex-foundation/js";
 import buffer from "buffer";
 import * as spl from "@solana/spl-token"
+import json = Mocha.reporters.json;
 
 
 async function createNftCollect(provider: AnchorProvider, mintCollAccount: PublicKey,collectMetadata: PublicKey,collection_master_edition:PublicKey, TOKEN_METADATA_PROGRAM_ID: PublicKey, stake: PublicKey,payer: PublicKey, program: Program<AnchorToken>, collect_metadata: {
@@ -103,6 +104,7 @@ async function initNft(payer: PublicKey, stake: PublicKey, collectionMasterEditi
         mint: nft1,
         owner: userKeyPair.publicKey,
     });
+    nft_metatdata.name = "NFT" + fanoutV0Account.id.toString() ;
     console.log("masterEditionAccount", masterEditionAccount,"player", payer)
 //stake, nft_mint,receipt_account,metadata_account,master_edition_account,collection_master_edition,
 // collection_metadata_account,payer,rent,system_program,associated_token_program,token_program,token_metadata_program
@@ -438,9 +440,13 @@ async function claimRewards(provider: AnchorProvider, userKeyPair: Keypair, mint
     console.log('tokenBalance', tokenBalance)
 
 
-    const rewardsAmount = await  program.account.reward.fetch(reward)
-    console.log('rewardsAmount', rewardsAmount)
+    const rewardAccount =  await provider.connection.getAccountInfo(reward)
+  console.log("reward address",JSON.stringify(rewardAccount.data));
+    const rewardsAmount = await  program.account.reward.fetch(reward.toBase58())
+    console.log('rewardsAmount', rewardsAmount.amount.toNumber(),rewardsAmount.totalAmount.toNumber())
 }
+
+
 
 describe("anchor-token",  () => {
   // Configure the client to use the local cluster.
@@ -594,12 +600,21 @@ describe("anchor-token",  () => {
    // await initNft(nft, payer, stake, nftMetadata, masterEditionAccount, collectionMasterEdition, collectMetadata, collect, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider);
  })
 
+    it.skip("query reward", async()=>{
+        const [reward] =PublicKey.findProgramAddressSync(
+            [Buffer.from("reward"),userKeyPair.publicKey.toBuffer()],
+            program.programId
+        )
+        console.log('reward address', reward.toBase58())
+        let rewards  = await program.account.reward.fetch(reward);
+        console.log(rewards)
+    })
 
     it.skip("print address", async ()=>{
         const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
         console.log("mintCollAccount: ",collection,collectMetadata,collection_master_edition,collection_master_edition)
     })
-  it.skip("initialize", async () => {
+  it("initialize", async () => {
     // Check if the mint account already exists
       const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
       console.log("mintCollAccount",collection)
@@ -610,10 +625,22 @@ describe("anchor-token",  () => {
       await unstakeNft(provider, nftMint, stake, userKeyPair, userReceive,custody,holdAccount,mint, program);
 
       await claimRewards(provider, userKeyPair, mint, stake, program);
-      await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
+      // await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
 
       // await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,user2KeyPair);
   });
+
+    it.skip("mint_new_eidtion", async () => {
+        // Check if the mint account already exists
+        const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
+        console.log("mintCollAccount",collection)
+        await initStake(provider, mint, stake, metadataAddress, payer, TOKEN_METADATA_PROGRAM_ID, program, metadata);
+        await createNftCollect(provider, collection, collectMetadata,collection_master_edition,TOKEN_METADATA_PROGRAM_ID, stake, payer, program, collect_metadata);
+        let [nftMint,userReceive]= await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,userKeyPair);
+
+
+        // await initNft( payer, stake, collection_master_edition, collectMetadata, collection, TOKEN_METADATA_PROGRAM_ID, program, nft_metatdata, provider,user2KeyPair);
+    });
 
     it.skip("mint_token", async()=>{
         const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
@@ -680,7 +707,7 @@ describe("anchor-token",  () => {
   });
 
 
-  it("mint_nft", async () => {
+  it.skip("mint_nft", async () => {
       console.log("  Mint not found. Attempting to initialize.");
       const {collection,collectMetadata,collection_master_edition} = await getCollectAccount(provider, adminKeyPair, stake, METADATA_SEED, TOKEN_METADATA_PROGRAM_ID,program);
 

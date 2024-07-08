@@ -1673,16 +1673,16 @@ export type AnchorToken = {
         "kind": "struct",
         "fields": [
           {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
             "name": "amount",
             "type": "i64"
           },
           {
             "name": "totalAmount",
             "type": "i64"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
           }
         ]
       }

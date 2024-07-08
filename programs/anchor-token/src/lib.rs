@@ -11,6 +11,7 @@ use anchor_spl::{
     },
     token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
+use anchor_spl::metadata::Metadata;
 use anchor_spl::token::Transfer;
 
 declare_id!("6EGLSq5shhzLiavFRKPLQtQxLuyqfcnypjih9ENJLGTe");
@@ -241,6 +242,7 @@ pub mod anchor_token {
 
         Ok(())
     }
+
     pub fn stake_nft(ctx: Context<StakeNFT>)-> Result<()>{
         let cpi_accounts = Transfer {
             from: ctx.accounts.send_account.to_account_info(),
@@ -270,6 +272,7 @@ pub mod anchor_token {
         ctx.accounts.reward.amount += amount;
         ctx.accounts.reward.owner = *ctx.accounts.user.key;
         ctx.accounts.stake.stake_count -=1;
+        msg!("reward total_amount: {}, amount {}",  ctx.accounts.reward.total_amount,  ctx.accounts.reward.amount);
         let cpi_accounts = Transfer {
             from: ctx.accounts.hold_account.to_account_info(),
             to: ctx.accounts.receive.to_account_info(),
@@ -285,12 +288,12 @@ pub mod anchor_token {
     pub fn claim(ctx: Context<ClaimReward>)-> Result<()>{
         let mint_seeds = &["stake".as_bytes(),&[ctx.bumps.stake]];
         let signer_seeds = [&mint_seeds[..]];
+        msg!("reward total_amount: {}, amount {}",  ctx.accounts.reward.total_amount,  ctx.accounts.reward.amount);
         token::mint_to(ctx.accounts.mint_ctx(&signer_seeds), ctx.accounts.reward.amount as u64)?;
         ctx.accounts.reward.amount = 0;
         Ok(())
     }
 }
-
 
 #[derive(Accounts)]
 pub struct  ClaimReward<'info>{
@@ -350,9 +353,9 @@ impl<'info,'a, 'b, 'c,> ClaimReward<'info,> {
 #[account]
 #[derive(Default)]
 pub struct  Reward{
+    pub owner: Pubkey,
     pub amount: i64,
     pub total_amount:i64,
-    pub owner: Pubkey,
 }
 
 #[derive(Accounts)]
